@@ -36,10 +36,10 @@ jobs:
       - name: Init CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ inputs.language }}
+          languages: java
           build-mode: ${{ env.build_mode }}
           dependency-caching: false
-          queries: security-extended
+          queries: +security-extended
 
       - name: Perform Analysis
         id: codeql-analyze
@@ -47,3 +47,4 @@ jobs:
         with:
           category: "/language:${{ inputs.language }}"
           upload: always
+
