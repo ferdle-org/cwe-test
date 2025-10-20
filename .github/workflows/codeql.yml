@@ -1,0 +1,49 @@
+name: CodeQL Android Workflow
+on:
+  pull_request:
+
+jobs:
+  scan-android:
+    runs-on: "ubuntu-latest"
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      build_mode: "autobuild"
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for Kotlin project
+        shell: sh
+        run: |
+          if ! find . -type f -name "*.kt" | grep -q .; then
+            #Si no existen *.kt es un repo de scripts kotlin (*.kts) o configuracion kotlin que no requiere construccion
+            echo "No Kotlin files found. Assuming isolated Kotlin scripts or configuration. Using 'none' build mode."
+            echo "build_mode=none" >> $GITHUB_ENV
+          elif [ -f "./src/main/resources/META-INF/plugin.xml" ]; then
+            #Plugins for IntelliJ IDEA or Android Studio use 'none' build mode due to these plugins are not a production development and they need download the IDE
+            echo "Kotlin project for a IntelliJ IDEA or Android Studio plugin. Using 'none' build mode."
+            echo "build_mode=none" >> $GITHUB_ENV
+          else
+            echo "Kotlin project. Using 'autobuild' build mode."
+          fi
+
+      - name: Init CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ inputs.language }}
+          build-mode: ${{ env.build_mode }}
+          dependency-caching: false
+          queries: security-extended
+
+      - name: Perform Analysis
+        id: codeql-analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ inputs.language }}"
+          upload: always
